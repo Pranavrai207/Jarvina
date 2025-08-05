@@ -1,0 +1,1060 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Jarvina AI Assistant</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" rel="stylesheet">
+    <style>
+        html, body {
+            height: 100%; /* Ensure html and body take full viewport height */
+            width: 100%;  /* Ensure html and body take full viewport width */
+            margin: 0;
+            padding: 0;
+            overflow: hidden; /* Prevent overall scrolling, internal sections will scroll */
+        }
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f0f2f5;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            /* Added for smoother text rendering */
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+            text-rendering: optimizeLegibility;
+            font-weight: 500; /* Slightly bolder than regular, but not full bold */
+        }
+        .chat-container {
+            display: flex;
+            width: 100%; /* Take full width of parent (body) */
+            height: 100%; /* Take full height of parent (body) */
+            background-color: #ffffff;
+            border-radius: 0; /* Remove border-radius for full screen, or keep if desired for a floating look */
+            box-shadow: none; /* Remove shadow for full screen, or keep if desired */
+            overflow: hidden;
+        }
+        .sidebar {
+            width: 250px;
+            background-color: #f8f9fa;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            border-right: 1px solid #e0e0e0;
+            flex-shrink: 0; /* Prevent sidebar from shrinking */
+        }
+        .main-content {
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
+        }
+        .chat-area {
+            flex-grow: 1;
+            padding: 20px;
+            overflow-y: auto;
+            background-color: #fdfdfd;
+        }
+        .message-input-area {
+            padding: 15px 20px;
+            border-top: 1px solid #e0e0e0;
+            display: flex;
+            align-items: center;
+            background-color: #ffffff;
+            position: relative; /* For positioning file upload elements */
+            flex-shrink: 0; /* Prevent input area from shrinking */
+        }
+        .message-input {
+            flex-grow: 1;
+            border: 1px solid #d1d5db;
+            border-radius: 25px;
+            padding: 10px 15px;
+            outline: none;
+            font-size: 1rem;
+            transition: border-color 0.3s ease;
+            min-height: 48px; /* Increased height for textarea */
+            resize: vertical; /* Allow vertical resizing */
+            line-height: 1.5; /* Better readability for multi-line text */
+        }
+        .message-input:focus {
+            border-color: #2563eb; /* Blue-600 */
+        }
+        .send-button {
+            background-color: #2563eb; /* Blue-600 */
+            color: white;
+            border: none;
+            border-radius: 25px;
+            padding: 10px 20px;
+            margin-left: 10px;
+            cursor: pointer;
+            transition: background-color 0.3s ease, transform 0.2s ease;
+            box-shadow: 0 4px 8px rgba(37, 99, 235, 0.3); /* Blue shadow */
+        }
+        .send-button:hover {
+            background-color: #1d4ed8; /* Blue-700 */
+            transform: translateY(-1px);
+        }
+        .send-button:active {
+            transform: translateY(1px);
+        }
+        .user-message {
+            background-color: #dbeafe; /* Blue-100 */
+            align-self: flex-end;
+            padding: 10px 15px;
+            border-radius: 15px 15px 0 15px;
+            margin-bottom: 10px;
+            max-width: 70%;
+            word-wrap: break-word;
+        }
+        .ai-message {
+            background-color: #f1f5f9;
+            align-self: flex-start;
+            padding: 10px 15px;
+            border-radius: 15px 15px 15px 0;
+            margin-bottom: 10px;
+            max-width: 70%;
+            word-wrap: break-word;
+        }
+        .sidebar-button {
+            display: block;
+            width: 100%;
+            padding: 12px 15px;
+            margin-bottom: 10px;
+            background-color: #dbeafe; /* Blue-100 */
+            color: #1d4ed8; /* Blue-700 */
+            border: none;
+            border-radius: 10px;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: background-color 0.3s ease, color 0.3s ease;
+            text-align: left;
+        }
+        .sidebar-button:hover {
+            background-color: #bfdbfe; /* Blue-200 */
+        }
+        .sidebar-button.active {
+            background-color: #2563eb; /* Blue-600 */
+            color: white;
+        }
+        .logo {
+            font-size: 1.8rem;
+            font-weight: bold;
+            color: #2563eb; /* Blue-600 */
+            text-align: center;
+            margin-bottom: 30px;
+            padding-bottom: 15px;
+            border-bottom: 1px solid #e0e0e0;
+        }
+        .form-section {
+            display: none; /* Hidden by default */
+            padding: 20px;
+            border: 1px solid #e0e0e0;
+            border-radius: 10px;
+            margin-top: 20px;
+            background-color: #ffffff;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+            flex-grow: 1; /* Allow it to take available space */
+            overflow-y: auto; /* For scrollable content within sections */
+        }
+        .form-section.active {
+            display: block;
+            display: flex; /* Use flexbox for canvas content */
+            flex-direction: column;
+        }
+        .form-section h3 {
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: #333;
+            margin-bottom: 15px;
+        }
+        .form-section textarea {
+            width: 100%;
+            min-height: 100px;
+            border: 1px solid #d1d5db;
+            border-radius: 8px;
+            padding: 10px;
+            font-size: 1rem;
+            margin-bottom: 15px;
+            resize: vertical;
+            outline: none;
+            transition: border-color 0.3s ease;
+        }
+        .form-section textarea:focus {
+            border-color: #2563eb; /* Blue-600 */
+        }
+        .form-section button {
+            background-color: #2563eb; /* Blue-600 */
+            color: white;
+            border: none;
+            border-radius: 8px;
+            padding: 10px 20px;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+        }
+        .form-section button:hover {
+            background-color: #1d4ed8; /* Blue-700 */
+        }
+
+        /* Drag and Drop styles */
+        .drop-area {
+            border: 2px dashed #a7a7a7;
+            border-radius: 10px;
+            padding: 20px;
+            text-align: center;
+            color: #777;
+            margin-bottom: 15px;
+            transition: background-color 0.3s ease, border-color 0.3s ease;
+        }
+        .drop-area.highlight {
+            background-color: #e0e7ff;
+            border-color: #2563eb; /* Blue-600 */
+        }
+        .file-upload-icon {
+            font-size: 2rem;
+            color: #2563eb; /* Blue-600 */
+            margin-bottom: 10px;
+        }
+        .file-list {
+            list-style: none;
+            padding: 0;
+            margin-top: 10px;
+        }
+        .file-list li {
+            background-color: #f1f5f9;
+            border-radius: 5px;
+            padding: 8px 12px;
+            margin-bottom: 5px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 0.9rem;
+        }
+        .file-list .remove-file {
+            background: none;
+            border: none;
+            color: #ef4444;
+            cursor: pointer;
+            font-size: 1rem;
+            padding: 0 5px;
+        }
+
+        /* Tools Button and Dropdown */
+        .tools-container {
+            position: relative;
+        }
+        /* Adjusted button styles for icon-only */
+        .icon-button {
+            background-color: #2563eb; /* Blue-600 */
+            color: white;
+            border: none;
+            border-radius: 25px;
+            padding: 10px 15px; /* Adjusted padding for icon-only */
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 4px 8px rgba(37, 99, 235, 0.3); /* Blue shadow */
+            width: 45px; /* Fixed width for circular appearance */
+            height: 45px; /* Fixed height for circular appearance */
+            flex-shrink: 0; /* Prevent shrinking */
+        }
+        .icon-button:hover {
+            background-color: #1d4ed8; /* Blue-700 */
+        }
+        .tools-dropdown {
+            position: absolute;
+            bottom: 60px; /* Position above the input */
+            left: 0;
+            background-color: #ffffff;
+            border-radius: 10px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.15);
+            min-width: 200px;
+            z-index: 1000;
+            display: none; /* Hidden by default */
+            padding: 10px 0;
+        }
+        .tools-dropdown.active {
+            display: block;
+        }
+        .tools-dropdown button {
+            display: block;
+            width: 100%;
+            padding: 10px 15px;
+            text-align: left;
+            background: none;
+            border: none;
+            color: #333;
+            cursor: pointer;
+            transition: background-color 0.2s ease;
+        }
+        .tools-dropdown button:hover {
+            background-color: #f0f2f5;
+        }
+
+        /* Canvas specific styles */
+        #myCanvas {
+            border: 1px solid #d1d5db;
+            background-color: #fefefe;
+            border-radius: 8px;
+            flex-grow: 1; /* Allow canvas to expand within its container */
+            width: 100%; /* Ensure canvas takes full width of its container */
+            height: 100%; /* Ensure canvas takes full height of its container */
+        }
+
+        /* NEW: Styles for image generation loading indicator */
+        .image-gen-loading {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            text-align: center;
+            color: #555;
+        }
+
+        .image-gen-loading .spinner {
+            border: 4px solid #f3f3f3; /* Light grey */
+            border-top: 4px solid #2563eb; /* Blue */
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin-bottom: 15px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .image-gen-result {
+            margin-top: 20px;
+            text-align: center;
+        }
+        .image-gen-result img {
+            max-width: 100%;
+            height: auto;
+            border-radius: 8px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+        }
+    </style>
+</head>
+<body class="bg-gray-100">
+    <div class="chat-container">
+        <aside class="sidebar">
+            <div class="logo">Jarvina</div>
+            <button class="sidebar-button active" onclick="showChat()">New Chat</button>
+            <!-- Removed Canvas Button from Sidebar -->
+            <button class="sidebar-button" onclick="showHistory()">History</button>
+            <button class="sidebar-button" onclick="showSettings()">Settings</button>
+        </aside>
+
+        <main class="main-content">
+            <div id="chat-view" class="chat-area flex flex-col">
+                <!-- Initial message will be added by JS based on history -->
+            </div>
+
+            <div id="canvas-view" class="form-section">
+                <h3>Interactive Canvas</h3>
+                <p>Use this space for drawing, diagrams, or other visual interactions.</p>
+                <canvas id="myCanvas"></canvas>
+            </div>
+
+            <div id="history-view" class="form-section">
+                <h3>Chat History</h3>
+                <div id="historyContent" class="flex flex-col">
+                    <!-- History content will be loaded here by JS -->
+                </div>
+            </div>
+
+            <div id="settings-view" class="form-section">
+                <h3>Settings</h3>
+                <p>Adjust your preferences here.</p>
+
+                <div class="mt-4">
+                    <h4 class="font-semibold text-gray-700 mb-2">Custom Instructions for Jarvina:</h4>
+                    <textarea id="customInstructions" class="w-full min-h-[120px] border border-gray-300 rounded-md p-3 text-sm focus:border-blue-500 focus:ring-blue-500" placeholder="Tell Jarvina how you'd like it to respond. E.g., 'Always be concise', 'Use technical terms', 'Avoid jargon'."></textarea>
+                    <button id="saveCustomInstructions" class="mt-3 bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-md shadow-md transition duration-300">Save Custom Instructions</button>
+                    <p id="customInstructionsStatus" class="text-sm mt-2 text-gray-600"></p>
+                </div>
+            </div>
+
+            <!-- NEW: Image Generation Section -->
+            <div id="image-gen-view" class="form-section">
+                <h3>Generate Image with Stable Diffusion</h3>
+                <p>Enter a detailed text prompt to create an image.</p>
+                <textarea id="imageGenPrompt" placeholder="Describe the image you want to generate (e.g., 'a serene landscape with a flowing river and distant mountains, digital painting, high detail')."></textarea>
+                <button id="generateImageButton">Generate Image</button>
+
+                <div id="imageGenLoading" class="image-gen-loading hidden">
+                    <div class="spinner"></div>
+                    <p>Generating image... This may take a few minutes on CPU.</p>
+                </div>
+
+                <div id="imageGenResult" class="image-gen-result hidden">
+                    <h4>Generated Image:</h4>
+                    <img id="generatedImage" src="" alt="Generated Image">
+                    <p id="imageGenStatus" class="text-sm mt-2 text-gray-600"></p>
+                </div>
+            </div>
+            <!-- END NEW: Image Generation Section -->
+
+
+            <div class="message-input-area">
+                <input type="file" id="fileInput" multiple hidden>
+                <button id="fileUploadButton" class="icon-button mr-2">
+                    <i class="fas fa-plus"></i>
+                </button>
+
+                <div class="tools-container mr-2">
+                    <button id="toolsButton" class="icon-button">
+                        <i class="fas fa-wrench"></i>
+                    </button>
+                    <div id="toolsDropdown" class="tools-dropdown">
+                        <button id="imageGenTool">Image Generation</button>
+                        <button id="videoGenTool">Video Generation</button>
+                        <button id="textToPdfTool">Text to PDF</button>
+                        <button id="textToExcelTool">Text to Excel</button>
+                        <button id="textToWordTool">Text to Word</button>
+                    </div>
+                </div>
+
+                <textarea id="userMessage" class="message-input" placeholder="Type your message..."></textarea>
+                <button id="sendMessage" class="send-button">Send</button>
+            </div>
+            <p id="loadingIndicator" class="text-gray-500 text-sm text-center py-2 hidden">Sending message...</p>
+        </main>
+    </div>
+
+    <script>
+        const chatArea = document.getElementById('chat-view');
+        const userMessageInput = document.getElementById('userMessage');
+        const sendMessageButton = document.getElementById('sendMessage');
+        const fileInput = document.getElementById('fileInput');
+        const fileUploadButton = document.getElementById('fileUploadButton');
+        const toolsButton = document.getElementById('toolsButton');
+        const toolsDropdown = document.getElementById('toolsDropdown');
+        const myCanvas = document.getElementById('myCanvas');
+        const ctx = myCanvas.getContext('2d');
+
+        const customInstructionsTextarea = document.getElementById('customInstructions');
+        const saveCustomInstructionsButton = document.getElementById('saveCustomInstructions');
+        const customInstructionsStatus = document.getElementById('customInstructionsStatus');
+        const loadingIndicator = document.getElementById('loadingIndicator');
+
+        const messageInputArea = document.querySelector('.message-input-area');
+        let droppedFiles = [];
+
+        // --- New/Modified History Variables ---
+        let allChatSessions = []; // Stores all completed chat sessions
+        let currentChatHistory = []; // Stores messages for the current active session
+        let currentSessionId = null; // Unique ID for the current session
+        const HISTORY_STORAGE_KEY = 'jarvina_all_chat_sessions'; // Changed key to reflect multi-session storage
+
+        const jarvinaInitialGreeting = 'Hello Pranav, I am Jarvina your personal AI assistant. How can I assist you today?';
+
+        // Get the history content div
+        const historyContent = document.getElementById('historyContent');
+
+        // --- NEW: Image Generation Elements ---
+        const imageGenPromptInput = document.getElementById('imageGenPrompt');
+        const generateImageButton = document.getElementById('generateImageButton');
+        const imageGenLoading = document.getElementById('imageGenLoading');
+        const imageGenResult = document.getElementById('imageGenResult');
+        const generatedImage = document.getElementById('generatedImage');
+        const imageGenStatus = document.getElementById('imageGenStatus');
+
+
+        // --- History Management Functions ---
+
+        /**
+         * Generates a unique ID for chat sessions.
+         * @returns {string} A unique ID.
+         */
+        function generateUniqueId() {
+            return 'chat_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+        }
+
+        /**
+         * Saves all chat sessions to localStorage.
+         * This function should be called whenever currentChatHistory changes or a session is completed/deleted.
+         */
+        function saveAllChatSessions() {
+            try {
+                // Ensure the current session is up-to-date in allChatSessions before saving
+                const existingSessionIndex = allChatSessions.findIndex(session => session.id === currentSessionId);
+                if (currentSessionId && currentChatHistory.length > 0) {
+                    if (existingSessionIndex !== -1) {
+                        allChatSessions[existingSessionIndex].messages = [...currentChatHistory];
+                    } else {
+                        // This case should ideally not happen if startNewChatSession is always called first
+                        // But as a safeguard, add it if it's a new session not yet in the array
+                        allChatSessions.push({ id: currentSessionId, messages: [...currentChatHistory] });
+                    }
+                }
+                localStorage.setItem(HISTORY_STORAGE_KEY, JSON.stringify(allChatSessions));
+                console.log('saveAllChatSessions: All chat sessions saved to localStorage.');
+            } catch (e) {
+                console.error('saveAllChatSessions: Error saving all chat sessions to localStorage:', e);
+            }
+        }
+
+        /**
+         * Loads all chat sessions from localStorage.
+         * Sets currentChatHistory and currentSessionId to the last session, or starts new if none.
+         */
+        function loadAllChatSessions() {
+            try {
+                const storedSessions = localStorage.getItem(HISTORY_STORAGE_KEY);
+                if (storedSessions) {
+                    allChatSessions = JSON.parse(storedSessions);
+                    console.log('loadAllChatSessions: Successfully loaded from localStorage. Data:', allChatSessions);
+
+                    if (allChatSessions.length > 0) {
+                        // Load the last session as the current one
+                        const lastSession = allChatSessions[allChatSessions.length - 1];
+                        currentChatHistory = [...lastSession.messages];
+                        currentSessionId = lastSession.id;
+                        console.log('loadAllChatSessions: Set current session to last one:', currentSessionId);
+                    } else {
+                        allChatSessions = [];
+                        currentChatHistory = [];
+                        currentSessionId = null;
+                        console.log('loadAllChatSessions: No sessions found, initializing empty.');
+                    }
+                } else {
+                    allChatSessions = [];
+                    currentChatHistory = [];
+                    currentSessionId = null;
+                    console.log('loadAllChatSessions: No chat sessions found in localStorage. Initializing empty.');
+                }
+            } catch (e) {
+                console.error('loadAllChatSessions: Error loading chat sessions from localStorage:', e);
+                allChatSessions = [];
+                currentChatHistory = [];
+                currentSessionId = null;
+            }
+        }
+
+        /**
+         * Starts a new chat session, saving the current one if it exists.
+         */
+        function startNewChatSession() {
+            // Save the current session if it has content and is not already saved
+            if (currentChatHistory.length > 0 && currentSessionId !== null) {
+                const existingSessionIndex = allChatSessions.findIndex(session => session.id === currentSessionId);
+                if (existingSessionIndex !== -1) {
+                    allChatSessions[existingSessionIndex].messages = [...currentChatHistory];
+                } else {
+                    allChatSessions.push({ id: currentSessionId, messages: [...currentChatHistory] });
+                }
+            }
+
+            chatArea.innerHTML = ''; // Clear chat display
+            currentChatHistory = [{ content: jarvinaInitialGreeting, senderClass: 'ai-message' }]; // New session starts with AI greeting
+            currentSessionId = generateUniqueId(); // Assign a new ID for the new session
+            // Append to display, but don't re-save to history here as it's already in currentChatHistory
+            appendMessage(jarvinaInitialGreeting, 'ai-message', false);
+            userMessageInput.value = ''; // Clear input field
+            saveAllChatSessions(); // Save the new session
+            console.log('startNewChatSession: New chat initiated. Current session ID:', currentSessionId);
+        }
+
+        /**
+         * Loads a specific chat session from history into the main chat area.
+         * @param {string} sessionId - The ID of the session to load.
+         */
+        function loadChatSession(sessionId) {
+            // First, save the current active session before switching
+            saveAllChatSessions();
+
+            const sessionToLoad = allChatSessions.find(session => session.id === sessionId);
+            if (sessionToLoad) {
+                chatArea.innerHTML = ''; // Clear current messages display
+                currentChatHistory = [...sessionToLoad.messages]; // Set current history to loaded session's messages
+                currentSessionId = sessionId; // Set the loaded session as current
+
+                currentChatHistory.forEach(msg => {
+                    // Append messages to chatArea without re-saving them to history
+                    appendMessage(msg.content, msg.senderClass, false);
+                });
+                chatArea.scrollTop = chatArea.scrollHeight;
+                console.log('loadChatSession: Loaded session ID:', sessionId);
+            } else {
+                console.warn('loadChatSession: Session not found:', sessionId);
+            }
+            // Ensure chat view is active after loading a session
+            showChatViewOnly();
+        }
+
+        /**
+         * Deletes a chat session from history.
+         * @param {string} sessionId - The ID of the session to delete.
+         */
+        function deleteChatSession(sessionId) {
+            allChatSessions = allChatSessions.filter(session => session.id !== sessionId);
+            if (currentSessionId === sessionId) {
+                // If the current session is deleted, start a new one
+                startNewChatSession();
+            }
+            saveAllChatSessions(); // Save changes after deletion
+            renderHistoryList(); // Re-render history list
+            console.log('deleteChatSession: Session deleted:', sessionId);
+        }
+
+        /**
+         * Renders the list of chat sessions in the historyContent div.
+         */
+        function renderHistoryList() {
+            historyContent.innerHTML = ''; // Clear existing list
+            if (allChatSessions.length === 0) {
+                const noHistoryMessage = document.createElement('p');
+                noHistoryMessage.textContent = 'No chat history yet.';
+                noHistoryMessage.classList.add('text-gray-500', 'text-center', 'py-4');
+                historyContent.appendChild(noHistoryMessage);
+                console.log('renderHistoryList: No history, displaying placeholder.');
+                return;
+            }
+
+            allChatSessions.forEach(session => {
+                const listItem = document.createElement('div'); // Use div for better flex control
+                listItem.classList.add('flex', 'justify-between', 'items-center', 'bg-gray-100', 'p-3', 'rounded-lg', 'mb-2', 'cursor-pointer', 'hover:bg-gray-200');
+
+                const firstUserMessage = session.messages.find(msg => msg.senderClass === 'user-message');
+                const title = firstUserMessage ? firstUserMessage.content.substring(0, 40) + (firstUserMessage.content.length > 40 ? '...' : '') : 'New Chat Session';
+
+                const titleSpan = document.createElement('span');
+                titleSpan.classList.add('flex-grow', 'truncate', 'mr-2'); // truncate for long titles
+                titleSpan.textContent = title;
+                titleSpan.addEventListener('click', () => loadChatSession(session.id));
+
+                const deleteButton = document.createElement('button');
+                deleteButton.classList.add('bg-red-500', 'hover:bg-red-600', 'text-white', 'font-bold', 'py-1', 'px-2', 'rounded-md', 'text-sm');
+                deleteButton.innerHTML = '<i class="fas fa-trash-alt"></i>'; // Font Awesome trash icon
+                deleteButton.title = 'Delete Session';
+                deleteButton.addEventListener('click', (event) => {
+                    event.stopPropagation(); // Prevent loading the chat when deleting
+                    deleteChatSession(session.id);
+                });
+
+                listItem.appendChild(titleSpan);
+                listItem.appendChild(deleteButton);
+                historyContent.appendChild(listItem);
+            });
+            console.log('renderHistoryList: History list rendered.');
+        }
+
+        /**
+         * Appends a message to the chat area and optionally saves it to the current session history.
+         * @param {string} content - The message content.
+         * @param {string} senderClass - CSS class for the sender ('user-message' or 'ai-message').
+         * @param {boolean} [toHistory=true] - Whether to save this message to the current session's history.
+         */
+        function appendMessage(content, senderClass, toHistory = true) {
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `flex ${senderClass === 'user-message' ? 'justify-end' : 'justify-start'}`;
+            const bubbleDiv = document.createElement('div');
+            bubbleDiv.className = senderClass;
+            // Use innerHTML to render formatted text (now simplified for plain text)
+            bubbleDiv.innerHTML = formatLLMResponse(content);
+            messageDiv.appendChild(bubbleDiv);
+            chatArea.appendChild(messageDiv);
+            chatArea.scrollTop = chatArea.scrollHeight;
+
+            if (toHistory) {
+                currentChatHistory.push({ content, senderClass });
+                saveAllChatSessions(); // Save all sessions after adding a message
+                console.log('appendMessage: Message appended and current session saved. Current in-memory history:', currentChatHistory);
+            } else {
+                console.log('appendMessage: Message appended (not saved to history):', { content, senderClass });
+            }
+        }
+
+        // --- Sidebar Navigation ---
+        function hideAllSections() {
+            document.getElementById('chat-view').classList.remove('flex');
+            document.getElementById('chat-view').classList.add('hidden');
+            document.getElementById('canvas-view').classList.remove('active');
+            document.getElementById('history-view').classList.remove('active');
+            document.getElementById('settings-view').classList.remove('active');
+            document.getElementById('image-gen-view').classList.remove('active'); // <--- NEW: Hide image gen view
+            document.querySelectorAll('.sidebar-button').forEach(btn => btn.classList.remove('active'));
+            console.log('hideAllSections: All sections hidden.');
+        }
+
+        /**
+         * Shows only the chat view.
+         */
+        function showChatViewOnly() {
+            hideAllSections();
+            document.getElementById('chat-view').classList.add('flex');
+            document.getElementById('chat-view').classList.remove('hidden');
+            document.querySelector('.sidebar-button:nth-child(1)').classList.add('active');
+            // Ensure message input area is visible for chat
+            messageInputArea.style.display = 'flex'; // <--- NEW: Show message input area
+            console.log('showChatViewOnly: Chat view activated.');
+        }
+
+        /**
+         * Shows the chat view and initiates a new chat session, clearing history.
+         */
+        function showChat() {
+            startNewChatSession(); // Always start a new session when clicking 'New Chat'
+            showChatViewOnly();
+        }
+
+        /**
+         * Shows the chat history view.
+         */
+        function showHistory() {
+            hideAllSections();
+            document.getElementById('history-view').classList.add('active');
+            document.querySelector('.sidebar-button:nth-child(2)').classList.add('active');
+
+            console.log('showHistory: Loading chat history for display...');
+            loadAllChatSessions(); // Ensure all sessions are loaded before rendering
+            renderHistoryList(); // Render the list of session titles
+            messageInputArea.style.display = 'none'; // <--- NEW: Hide message input area for history
+            console.log('showHistory: History tab shown. Sessions loaded and displayed.');
+        }
+
+        /**
+         * Shows the settings view.
+         */
+        function showSettings() {
+            hideAllSections();
+            document.getElementById('settings-view').classList.add('active');
+            document.querySelector('.sidebar-button:nth-child(3)').classList.add('active');
+            loadCustomInstructions(); // Load instructions when settings are shown
+            messageInputArea.style.display = 'none'; // <--- NEW: Hide message input area for settings
+            console.log('showSettings: Settings tab shown.');
+        }
+
+        /**
+         * Shows the image generation view.
+         */
+        function showImageGenView() {
+            hideAllSections();
+            document.getElementById('image-gen-view').classList.add('active');
+            // No sidebar button for this, as it's a tool
+            messageInputArea.style.display = 'none'; // <--- NEW: Hide message input area for image gen
+            console.log('showImageGenView: Image Generation tab shown.');
+        }
+
+
+        // --- Initial Load Logic ---
+        // This runs once the DOM is fully loaded.
+        document.addEventListener('DOMContentLoaded', () => {
+            console.log('DOMContentLoaded: Page loaded. Attempting to load chat sessions.');
+            loadAllChatSessions(); // Load all sessions from localStorage
+
+            chatArea.innerHTML = ''; // Clear any initial static HTML greeting (like the one in your original code)
+
+            if (currentChatHistory.length > 0) {
+                console.log('DOMContentLoaded: Populating chat area with loaded current session history.');
+                currentChatHistory.forEach(msg => {
+                    // Append messages to chatArea without re-saving them to history
+                    appendMessage(msg.content, msg.senderClass, false);
+                });
+                chatArea.scrollTop = chatArea.scrollHeight;
+            } else {
+                console.log('DOMContentLoaded: No active session found or history empty, starting new session.');
+                startNewChatSession(); // This will also append the initial AI greeting and save it
+            }
+
+            showChatViewOnly(); // Ensure the chat view is the default active view
+        });
+
+
+        // --- Chat Functionality ---
+        sendMessageButton.addEventListener('click', async () => {
+            const userMessage = userMessageInput.value.trim();
+            console.log('sendMessageButton: Send button clicked. User message:', userMessage);
+            if (userMessage) {
+                appendMessage(userMessage, 'user-message'); // This will save to current session history
+                userMessageInput.value = '';
+                loadingIndicator.classList.remove('hidden');
+
+                try {
+                    console.log('sendMessageButton: Attempting to send message to /api/chat/mistral/');
+                    const response = await fetch('/api/chat/mistral/', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({ prompt: userMessage })
+                    });
+                    console.log('sendMessageButton: Response received:', response);
+                    const data = await response.json();
+                    console.log('sendMessageButton: Response data:', data);
+
+                    if (response.ok) {
+                        appendMessage(data.response, 'ai-message'); // This will save to current session history
+                    } else {
+                        appendMessage(`Error: ${data.detail || 'Something went wrong.'}`, 'ai-message');
+                        console.error('sendMessageButton: API Error:', data);
+                    }
+                } catch (error) {
+                    console.error('sendMessageButton: Error sending message or processing response:', error);
+                    appendMessage('Error: Could not connect to the server or process response.', 'ai-message');
+                } finally {
+                    loadingIndicator.classList.add('hidden');
+                }
+            } else {
+                console.log('sendMessageButton: User message is empty, not sending.');
+            }
+        });
+
+        userMessageInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                sendMessageButton.click();
+            }
+        });
+
+        // --- File Upload (Plus Icon) ---
+        fileUploadButton.addEventListener('click', () => {
+            fileInput.click();
+        });
+
+        fileInput.addEventListener('change', (event) => {
+            const files = event.target.files;
+            if (files.length > 0) {
+                console.log('fileInput: Files selected:', files);
+                let fileNames = Array.from(files).map(file => file.name).join(', ');
+                appendMessage(`Selected files: ${fileNames}`, 'user-message');
+            }
+        });
+
+        // --- Drag and Drop Feature ---
+        messageInputArea.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            messageInputArea.classList.add('highlight');
+        });
+
+        messageInputArea.addEventListener('dragleave', () => {
+            messageInputArea.classList.remove('highlight');
+        });
+
+        messageInputArea.addEventListener('drop', (e) => {
+            e.preventDefault();
+            messageInputArea.classList.remove('highlight');
+            const files = e.dataTransfer.files;
+            if (files.length > 0) {
+                droppedFiles = Array.from(files);
+                console.log('messageInputArea: Files dropped:', droppedFiles);
+                let fileNames = droppedFiles.map(file => file.name).join(', ');
+                appendMessage(`Dropped files: ${fileNames}`, 'user-message');
+            }
+        });
+
+        // --- Tools Button and Dropdown ---
+        toolsButton.addEventListener('click', (event) => {
+            event.stopPropagation();
+            toolsDropdown.classList.toggle('active');
+        });
+
+        document.addEventListener('click', (event) => {
+            if (!toolsDropdown.contains(event.target) && !toolsButton.contains(event.target)) {
+                toolsDropdown.classList.remove('active');
+            }
+        });
+
+        // <--- MODIFIED: Image Generation Tool Button
+        document.getElementById('imageGenTool').addEventListener('click', () => {
+            showImageGenView(); // Show the new image generation section
+            toolsDropdown.classList.remove('active'); // Close the dropdown
+            imageGenResult.classList.add('hidden'); // Hide previous results
+            imageGenStatus.textContent = ''; // Clear previous status
+            imageGenPromptInput.value = ''; // Clear prompt input
+        });
+
+        document.getElementById('videoGenTool').addEventListener('click', () => {
+            customAlert('Video Generation tool selected! (Backend integration needed)');
+            toolsDropdown.classList.remove('active');
+        });
+        document.getElementById('textToPdfTool').addEventListener('click', () => {
+            customAlert('Text to PDF tool selected! (Backend integration needed)');
+            toolsDropdown.classList.remove('active');
+        });
+        document.getElementById('textToExcelTool').addEventListener('click', () => {
+            customAlert('Text to Excel tool selected! (Backend integration needed)');
+            toolsDropdown.classList.remove('active');
+        });
+        document.getElementById('textToWordTool').addEventListener('click', () => {
+            customAlert('Text to Word tool selected! (Backend integration needed)');
+            toolsDropdown.classList.remove('active');
+        });
+
+        function customAlert(message) {
+            const messageBox = document.createElement('div');
+            messageBox.style.cssText = `
+                position: fixed;
+                top: 50%;
+                left: 50%;
+                transform: translate(-50%, -50%);
+                background-color: white;
+                padding: 20px;
+                border-radius: 10px;
+                box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+                z-index: 9999;
+                text-align: center;
+                font-family: 'Inter', sans-serif;
+                color: #333;
+            `;
+            messageBox.innerHTML = `
+                <p>${message}</p>
+                <button style="
+                    background-color: #2563eb;
+                    color: white;
+                    border: none;
+                    border-radius: 5px;
+                    padding: 8px 15px;
+                    margin-top: 15px;
+                    cursor: pointer;
+                    transition: background-color 0.3s ease;
+                " onmouseover="this.style.backgroundColor='#1d4ed8'" onmouseout="this.style.backgroundColor='#2563eb'">
+                    OK
+                </button>
+            `;
+            document.body.appendChild(messageBox);
+            messageBox.querySelector('button').onclick = () => messageBox.remove();
+        }
+
+        // --- Canvas Resizing Logic ---
+        function resizeCanvas() {
+            const canvasContainer = myCanvas.parentElement;
+            myCanvas.width = canvasContainer.clientWidth;
+            myCanvas.height = canvasContainer.clientHeight;
+            drawOnCanvas();
+        }
+
+        function drawOnCanvas() {
+            ctx.clearRect(0, 0, myCanvas.width, myCanvas.height);
+            ctx.fillStyle = '#2563eb';
+            ctx.font = '24px Inter';
+            ctx.textAlign = 'center';
+            ctx.fillText('Your interactive canvas content goes here!', myCanvas.width / 2, myCanvas.height / 2);
+            ctx.fillStyle = '#1d4ed8';
+            ctx.fillRect(myCanvas.width / 2 - 50, myCanvas.height / 2 + 20, 100, 50);
+        }
+
+        window.addEventListener('resize', () => {
+            if (document.getElementById('canvas-view').classList.contains('active')) {
+                resizeCanvas();
+            }
+        });
+
+        // --- Custom Instructions Logic ---
+        saveCustomInstructionsButton.addEventListener('click', async () => {
+            const instructions = customInstructionsTextarea.value.trim();
+            try {
+                const response = await fetch('/api/save_custom_instructions', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ instructions: instructions })
+                });
+                const data = await response.json();
+                if (response.ok) {
+                    customInstructionsStatus.textContent = data.message;
+                    customInstructionsStatus.style.color = 'green';
+                } else {
+                    customInstructionsStatus.textContent = `Error: ${data.detail || 'Failed to save instructions.'}`;
+                    customInstructionsStatus.style.color = 'red';
+                }
+            } catch (error) {
+                console.error('saveCustomInstructionsButton: Error saving custom instructions:', error);
+                customInstructionsStatus.textContent = 'Error: Could not connect to the server to save instructions.';
+                customInstructionsStatus.style.color = 'red';
+            }
+        });
+
+        async function loadCustomInstructions() {
+            try {
+                const response = await fetch('/api/load_custom_instructions');
+                const data = await response.json();
+                if (response.ok && data.instructions !== undefined) {
+                    customInstructionsTextarea.value = data.instructions;
+                } else {
+                    console.warn('loadCustomInstructions: No custom instructions found or error loading:', data.detail);
+                }
+            } catch (error) {
+                console.error('loadCustomInstructions: Error loading custom instructions:', error);
+            }
+        }
+
+        /**
+         * Formats the LLM response for display, handling only plain text and line breaks.
+         * All Markdown parsing has been removed as per the backend's new instruction.
+         * @param {string} text - The raw text response from the LLM.
+         * @returns {string} The HTML-formatted plain text.
+         */
+        function formatLLMResponse(text) {
+            // Escape HTML characters to prevent XSS
+            let formattedText = text
+                .replace(/&/g, "&amp;")
+                .replace(/</g, "&lt;")
+                .replace(/>/g, "&gt;")
+                .replace(/"/g, "&quot;")
+                .replace(/'/g, "&#039;");
+
+            // Convert newlines to <br> tags for display
+            formattedText = formattedText.replace(/\n/g, '<br>');
+
+            return formattedText.trim();
+        }
+
+        // --- NEW: Image Generation Form Submission Logic ---
+        generateImageButton.addEventListener('click', async () => {
+            const prompt = imageGenPromptInput.value.trim();
+            if (!prompt) {
+                customAlert('Please enter a prompt for image generation.');
+                return;
+            }
+
+            imageGenLoading.classList.remove('hidden'); // Show loading spinner
+            imageGenResult.classList.add('hidden'); // Hide previous result
+            imageGenStatus.textContent = ''; // Clear status message
+
+            try {
+                const formData = new FormData();
+                formData.append('prompt', prompt);
+
+                const response = await fetch('/generate_image', {
+                    method: 'POST',
+                    body: formData // Use FormData for form submission
+                });
+
+                const data = await response.json(); // FastAPI returns JSON
+
+                if (response.ok) {
+                    if (data.generated_image_url) {
+                        generatedImage.src = data.generated_image_url;
+                        generatedImage.alt = prompt;
+                        imageGenResult.classList.remove('hidden'); // Show the image result section
+                        imageGenStatus.textContent = 'Image generated successfully!';
+                        imageGenStatus.style.color = 'green';
+                    } else {
+                        imageGenStatus.textContent = data.response_text || 'Image generation successful, but no image URL returned.';
+                        imageGenStatus.style.color = 'orange';
+                    }
+                } else {
+                    imageGenStatus.textContent = `Error: ${data.detail || 'Something went wrong during image generation.'}`;
+                    imageGenStatus.style.color = 'red';
+                    console.error('Image Generation API Error:', data);
+                }
+            } catch (error) {
+                console.error('Error during image generation fetch:', error);
+                imageGenStatus.textContent = 'Error: Could not connect to the server or process image generation.';
+                imageGenStatus.style.color = 'red';
+            } finally {
+                imageGenLoading.classList.add('hidden'); // Hide loading spinner
+            }
+        });
+    </script>
+</body>
+</html>
